@@ -36,11 +36,11 @@ Then add it to your configuration
         })
     ];
 }
-You ofcourse dont need to override it if you don't need to change the configuration
 ```
+You of course dont need to override it if you don't need to change the configuration
 
 ## Non-Flake
-If you want to avoid cluttering your flake inputs or you simply don't use them you can create a nix derivation to build the program manually and add it to your environment packages:
+If you want to avoid cluttering your flake inputs you can create a nix derivation to build the program manually and add it to your environment packages:
 ```nix
 environment.systemPackages = [
     (pkgs.stdenv.mkDerivation {

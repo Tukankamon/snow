@@ -2,8 +2,8 @@ module Utils where
 
 catListLn :: [String] -> String -> String
 catListLn [] _ = ""
-catListLn [x] prefix = prefix ++ x
-catListLn (x:xs) prefix = prefix ++ x ++ "\n" ++ catListLn xs prefix
+catListLn [x] indent = indent ++ x
+catListLn (x:xs) indent = indent ++ x ++ "\n" ++ catListLn xs indent
 
 catDot :: [String] -> String
 catDot [] = ""

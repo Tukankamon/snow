@@ -11,11 +11,15 @@ tab = "\t"
 defaultArch :: Arch
 defaultArch = X86
 
+-- Default branch to be used in the flake inputs
+defaultBranch :: Nixpkgs
+defaultBranch = Stable
+
 -- List of languages that will need to be implemented later in the file
 -- Note that they dont have to be actual languages, for example Default is
 -- a "language" target that creates a general flake, you can do the same for any
 -- wierd use case for flakes you might have
-data Language = Default | Rust | Haskell
+data Language = Default | Rust | Haskell | C
 
 -- The branch to be used in the nixpkgs inputs
 data Nixpkgs = Stable | Unstable
@@ -30,7 +34,9 @@ data Data = Data {arch :: Arch, lang :: Language, branch :: Nixpkgs}
 -- definitions: things like pkgs = nixpkgs.legacyPackages.system
 -- packages: packages that will be in the nix shell after running nix develop
 -- hook: Commands to be run immediately after entering the shell
-data Config  = Config { definitions :: [String], packages :: [String], hook :: [String] } deriving (Show)
+-- other:: Literally anything else (mind that ";" is added automatically so no need for you to add it
+  -- see how rust is implemented in fillConfig for an example
+data Config  = Config { definitions :: [String], packages :: [String], hook :: [String], other :: [String] } deriving (Show)
 
 -- Only the actual branch name is needed. For now, the link body is autocompleted in the code
 branchToString :: Nixpkgs -> String
@@ -49,28 +55,43 @@ fillConfig dat = case lang dat of
   Default -> Config {
     definitions = [pkgs],
     packages = [""],
-    hook = ["fish"] }
+    hook = ["fish"],
+    other = [] }
   Rust -> Config {
     definitions = [pkgs],
-    packages = ["cargo", "rustc"],
-    hook = [] }
+    packages = ["cargo", "rustc", "rustfmt"],
+    hook = [],
+    -- env variable needed for lsp's and other things:
+    -- https://www.youtube.com/watch?v=Ss1IXtYnpsg&t=187s
+    other = ["env.RUST_SRC_PATH = \"${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}\""]}
   Haskell -> Config {
     definitions = [pkgs, hpkgs],
     packages = ["ghc", "cabal-install"],
-    hook = [] }
+    hook = [],
+    other = [] }
+  C -> Config {
+    definitions = [pkgs],
+    packages = ["make", "cmake", "gcc", "gdb"],
+    hook = [],
+    other = [] }
   where
     pkgs = catDot ["pkgs = nixpkgs.legacyPackages", archToString (arch dat)] ++ ";"
     hpkgs = "hpkgs = pkgs.haskellPackages;"
 
--- Atcual argument parsing, add your own custom arguments as neeed
+-- Actual argument parsing, add your own custom arguments as neeed
 -- Takes in the generateFlake funtion defined in Main.hs, this is done to avoid cirular imports
 parseArgs :: (Data -> String) -> IO String
 parseArgs generator = do
   args <- getArgs
-  -- #TODO parse architecture and branch, maybe use optparse-applicative lib
+  -- #TODO parse architecture and branch, and make it case insensitive
   return $ case args of
-    [] -> generator $ Data { arch = defaultArch, lang = Default, branch = Stable}
-    ["rust"] -> generator $ Data { arch = defaultArch, lang = Rust, branch = Stable}
-    ["haskell"] -> generator $ Data { arch = defaultArch, lang = Haskell, branch = Stable}
+    [] -> generator $ builder defaultArch Default defaultBranch
+    ["rust"] -> generator $ builder defaultArch Rust defaultBranch
+    ["haskell"] -> generator $ builder defaultArch Haskell defaultBranch
+    ["c"] -> generator $ builder defaultArch C defaultBranch
     [x] -> "Unrecognized language: " ++ x
     _ -> "Too many arguments"
+    where
+    builder :: Arch -> Language -> Nixpkgs -> Data
+    builder architecture language br =
+      Data { arch = architecture, lang = language, branch = br }

@@ -1,5 +1,6 @@
 FLAGS ?=
 QUIET ?=
+LANG ?=
 
 snow: app/Main.hs app/Config.hs app/Utils.hs
 	$(QUIET)mkdir -p build
@@ -11,7 +12,7 @@ debug: snow
 # debug because this is only used when testing
 run: QUIET = @
 run: debug
-	@./build/snow
+	@./build/snow $(LANG)
 
 clean:
 	rm -rf build dist-newstyle
