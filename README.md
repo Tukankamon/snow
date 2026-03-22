@@ -14,9 +14,9 @@ These are to fill out common dependencies like cargo and rustc for Rust
 Setting the LANGUAGE field empty will default to a generic flake
 
 # Configuration
-Configuration is done following the suckless style of recompiling your changes directly into your program. Most configuration use cases should be configurable in Config.hs but of course as with any libre program you are free to change it as you wish. Because of this, snow doesn't need any external dependencies at build time other than ghc
+Configuration is done following the suckless style of recompiling your changes directly into your program but instead of writing actual patches, the configuration file is literaly a file that will get swapped out for the default [Config.hs](app/Config.hs). Most configuration use cases should be configurable in [Config.hs](app/Config.hs) but of course as with any libre program you are free to change it as you wish. Because of this, snow doesn't need any external dependencies at build time other than ghc
 
-The Config.hs file in this repo will have comments explaining each part and it is worthwhile checking the Utils.hs file as it has some helper functions that Config.hs makes use of
+The [Config.hs](app/Config.hs) file in this repo will have comments explaining each part and it is worthwhile checking the [Utils.hs](app/Utils.hs) file as it has some helper functions that [Config.hs](app/Config.hs) makes use of
 
 # Installation
 ## Flake
@@ -49,20 +49,20 @@ environment.systemPackages = [
         domain = "codeberg.org";
         owner = "Tukankamon";
         repo = "snow";
-        rev = "c77a6d0418";
-        sha256 = "sha256-ednbp/7NZvtyUr2yXgHWmfYKy3yiAVFdvT8rnZQtkFI=";
+        rev = "c77a6d0418"; # Change this for the commit hash you want
+        sha256 = pkgs.lib.fakeHash; # This will fail on build and thell you the correct hash
       };
       buildInputs = [ (pkgs.haskellPackages.ghcWithPackages (ps: [])) ];
       buildPhase = ''
         # Uncomment this line to change config file
         #cp ${./Config.hs} app/Config.hs
 
-        # Add whatever compiler flags you want here doing 'make FLAGS="-02 -Wall"' (for example)
+        # Add whatever compiler flags you want here with 'make FLAGS="-02 -Wall"' (for example)
         make
       '';
       installPhase = ''
         mkdir -p $out/bin
-        cp snow $out/bin/
+        cp build/snow $out/bin/
       '';
     })
 ];

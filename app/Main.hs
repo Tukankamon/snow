@@ -1,7 +1,6 @@
 module Main (main) where
 import Config
 import Utils
-import System.Environment (getArgs)
 
 generateList :: [String] -> String
 generateList list = "[\n" ++ catListLn list tab ++ "\n];"
@@ -37,13 +36,5 @@ generateFlake dat = generateSet [
   generateOutputs dat ] ""
 
 main :: IO ()
-main = do
-  args <- getArgs
-  case args of -- #TODO parse architecture and branch, maybe use optparse-applicative lib
-    [] -> putStrLn $ generateFlake $ Data { arch = X86, lang = Default, branch = Stable}
-    ["rust"] -> putStrLn $
-      generateFlake $ Data { arch = X86, lang = Rust, branch = Stable}
-    ["haskell"] -> putStrLn $
-      generateFlake $ Data { arch = X86, lang = Haskell, branch = Stable}
-    [x] -> putStrLn $ "Unrecognized language: " ++ x
-    _ -> putStrLn "Too many arguments"
+main = parseArgs generateFlake >>= putStrLn
+

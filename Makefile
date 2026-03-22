@@ -14,4 +14,4 @@ run: debug
 	@./build/snow
 
 clean:
-	rm -rf build snow
+	rm -rf build dist-newstyle
