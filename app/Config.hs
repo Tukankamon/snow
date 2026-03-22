@@ -30,13 +30,66 @@ data Arch = X86 -- #TODO add more
 -- All the information that will actually get passed onto the builders
 data Data = Data {arch :: Arch, lang :: Language, branch :: Nixpkgs}
 
+-- Package builders, for example mkDerivation
+-- prefix: the part that goes at the beggining: eg "pkgs.mkDerivation"
+-- name: name of the executable, best to leave blank
+-- src: path to the code #TODO add fetch from github
+-- buildInputs, nativeBuildInputs are the same as in Nix
+-- buildPhase, installPhase: Commands to be run for each phase
+-- extra: any other language-specific parameters (for an example look at rust's implementation in fillConfig)
+data Builder = Builder {
+  prefix :: String,
+  name :: String,
+  src :: String,
+  buildInputs :: [String],
+  nativeBuildInputs :: [String],
+  buildPhase :: [String],
+  installPhase :: [String],
+  extra :: [String]
+} deriving (Show)
+
 -- Derived from Data and is the List of:
 -- definitions: things like pkgs = nixpkgs.legacyPackages.system
+-- builder: builder to use based on the language
 -- packages: packages that will be in the nix shell after running nix develop
 -- hook: Commands to be run immediately after entering the shell
--- other:: Literally anything else (mind that ";" is added automatically so no need for you to add it
+-- other:: Literally anything else inside the shell (mind that ";" is added automatically so no need for you to add it
   -- see how rust is implemented in fillConfig for an example
-data Config  = Config { definitions :: [String], packages :: [String], hook :: [String], other :: [String] } deriving (Show)
+data Config  = Config {
+  definitions :: [String],
+  builder :: Maybe Builder,
+  packages :: [String],
+  hook :: [String],
+  other :: [String]
+} deriving (Show)
+
+-- Default builder, can be set to none if you don't want one. This will simply not generate it in the flake
+defaultBuilder :: Maybe Builder
+-- defaultBuilder = None
+defaultBuilder = Just Builder {
+  prefix = "pkgs.mkDerivation",
+  name = "",
+  src = "./.",
+  buildInputs = [],
+  nativeBuildInputs = [],
+  buildPhase = [],
+  installPhase = [],
+  extra = []
+}
+
+
+-- Example for a rust cargo builder
+cargoBuilder :: Maybe Builder
+cargoBuilder = Just Builder {
+  prefix = "pkgs.rustPlatform.buildRustPackage",
+  name = "",
+  src = "./.",
+  buildInputs = [],
+  nativeBuildInputs = [],
+  buildPhase = [],
+  installPhase = [],
+  extra = ["cargoHash = pkgs.lib.fakeHash;"]
+};
 
 -- Only the actual branch name is needed. For now, the link body is autocompleted in the code
 branchToString :: Nixpkgs -> String
@@ -54,11 +107,13 @@ fillConfig :: Data -> Config
 fillConfig dat = case lang dat of
   Default -> Config {
     definitions = [pkgs],
+    builder = defaultBuilder,
     packages = [""],
     hook = ["fish"],
     other = [] }
   Rust -> Config {
     definitions = [pkgs],
+    builder = cargoBuilder,
     packages = ["cargo", "rustc", "rustfmt"],
     hook = [],
     -- env variable needed for lsp's and other things:
@@ -66,11 +121,13 @@ fillConfig dat = case lang dat of
     other = ["env.RUST_SRC_PATH = \"${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}\""]}
   Haskell -> Config {
     definitions = [pkgs, hpkgs],
+    builder = defaultBuilder,
     packages = ["ghc", "cabal-install"],
     hook = [],
     other = [] }
   C -> Config {
     definitions = [pkgs],
+    builder = defaultBuilder,
     packages = ["make", "cmake", "gcc", "gdb"],
     hook = [],
     other = [] }
@@ -85,13 +142,13 @@ parseArgs generator = do
   args <- getArgs
   -- #TODO parse architecture and branch, and make it case insensitive
   return $ case args of
-    [] -> generator $ builder defaultArch Default defaultBranch
-    ["rust"] -> generator $ builder defaultArch Rust defaultBranch
-    ["haskell"] -> generator $ builder defaultArch Haskell defaultBranch
-    ["c"] -> generator $ builder defaultArch C defaultBranch
+    [] -> generator $ fillData defaultArch Default defaultBranch
+    ["rust"] -> generator $ fillData defaultArch Rust defaultBranch
+    ["haskell"] -> generator $ fillData defaultArch Haskell defaultBranch
+    ["c"] -> generator $ fillData defaultArch C defaultBranch
     [x] -> "Unrecognized language: " ++ x
     _ -> "Too many arguments"
     where
-    builder :: Arch -> Language -> Nixpkgs -> Data
-    builder architecture language br =
+    fillData :: Arch -> Language -> Nixpkgs -> Data
+    fillData architecture language br =
       Data { arch = architecture, lang = language, branch = br }

@@ -10,6 +10,7 @@ Will write nix flake boilerplate. It is not correctly formatted so alejandra is 
 Currently available languages are:
     - Rust
     - Haskell
+    - C / Cpp
 These are to fill out common dependencies like cargo and rustc for Rust
 Setting the LANGUAGE field empty will default to a generic flake
 
