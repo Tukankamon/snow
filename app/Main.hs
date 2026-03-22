@@ -83,4 +83,3 @@ generateFlake dat = generateSet 0 [
 
 main :: IO ()
 main = parseArgs generateFlake >>= putStrLn
-

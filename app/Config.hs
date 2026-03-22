@@ -15,11 +15,14 @@ defaultArch = X86
 defaultBranch :: Nixpkgs
 defaultBranch = Stable
 
--- List of languages that will need to be implemented later in the file
--- Note that they dont have to be actual languages, for example Default is
--- a "language" target that creates a general flake, you can do the same for any
--- wierd use case for flakes you might have
-data Language = Default | Rust | Haskell | C
+{-
+List of languages that will need to be implemented later in the file
+Note that they dont have to be actual languages, for example Default is
+a "language" target that creates a general flake, you can do the same for any
+wierd use case for flakes you might have
+-}
+data Language = Default | Rust | Haskell | C | Python
+  deriving (Show, Bounded, Enum)
 
 -- The branch to be used in the nixpkgs inputs
 data Nixpkgs = Stable | Unstable
@@ -30,13 +33,15 @@ data Arch = X86 -- #TODO add more
 -- All the information that will actually get passed onto the builders
 data Data = Data {arch :: Arch, lang :: Language, branch :: Nixpkgs}
 
--- Package builders, for example mkDerivation
--- prefix: the part that goes at the beggining: eg "pkgs.mkDerivation"
--- name: name of the executable, best to leave blank
--- src: path to the code #TODO add fetch from github
--- buildInputs, nativeBuildInputs are the same as in Nix
--- buildPhase, installPhase: Commands to be run for each phase
--- extra: any other language-specific parameters (for an example look at rust's implementation in fillConfig)
+{-
+Package builders, for example mkDerivation
+  prefix: the part that goes at the beggining: eg "pkgs.mkDerivation"
+  name: name of the executable, best to leave blank
+  src: path to the code #TODO add fetch from github
+  buildInputs, nativeBuildInputs are the same as in Nix
+  buildPhase, installPhase: Commands to be run for each phase
+  extra: any other language-specific parameters (for an example look at rust's implementation in fillConfig)
+-}
 data Builder = Builder {
   prefix :: String,
   name :: String,
@@ -48,13 +53,15 @@ data Builder = Builder {
   extra :: [String]
 } deriving (Show)
 
--- Derived from Data and is the List of:
--- definitions: things like pkgs = nixpkgs.legacyPackages.system
--- builder: builder to use based on the language
--- packages: packages that will be in the nix shell after running nix develop
--- hook: Commands to be run immediately after entering the shell
--- other:: Literally anything else inside the shell (mind that ";" is added automatically so no need for you to add it
-  -- see how rust is implemented in fillConfig for an example
+{-
+Derived from Data and is the List of:
+  definitions: things like pkgs = nixpkgs.legacyPackages.system
+  builder: builder to use based on the language
+  packages: packages that will be in the nix shell after running nix develop
+  hook: Commands to be run immediately after entering the shell
+  other:: Literally anything else inside the shell (mind that ";" is added automatically so no need for you to add it
+    (see how rust is implemented in fillConfig for an example)
+-}
 data Config  = Config {
   definitions :: [String],
   builder :: Maybe Builder,
@@ -131,6 +138,13 @@ fillConfig dat = case lang dat of
     packages = ["make", "cmake", "gcc", "gdb"],
     hook = [],
     other = [] }
+  Python -> Config {
+    definitions = [pkgs],
+    builder = defaultBuilder,
+    -- Python packages are different on nix, check https://www.youtube.com/watch?v=6fftiTJ2vuQ to learn how to install them
+    packages = ["python"],
+    hook = [],
+    other = [] }
   where
     pkgs = "pkgs = nixpkgs.legacyPackages" ++ archToString (arch dat) ++ ";"
     hpkgs = "hpkgs = pkgs.haskellPackages;"
@@ -143,10 +157,13 @@ parseArgs generator = do
   -- #TODO parse architecture and branch, and make it case insensitive
   return $ case args of
     [] -> fillData defaultArch Default defaultBranch
+    ["show"] ->
+      "Available languages:\n" ++ unlines (map show [minBound..maxBound :: Language])
     ["rust"] -> fillData defaultArch Rust defaultBranch
     ["haskell"] -> fillData defaultArch Haskell defaultBranch
     ["c"] -> fillData defaultArch C defaultBranch
-    [x] -> "Unrecognized language: " ++ x
+    ["python"] -> fillData defaultArch Python defaultBranch
+    [x] -> "Unrecognized language: " ++ x ++ "\n Run 'snow show' to list all of the available languages"
     _ -> "Too many arguments"
     where
     fillData :: Arch -> Language -> Nixpkgs -> String
