@@ -1,4 +1,6 @@
 dist-newstyle
+build
+snow
 *.hi
 *.o
 temp.nix
