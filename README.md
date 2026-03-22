@@ -77,3 +77,4 @@ environment.systemPackages = [
 - [ ] Figure out if cabal should be used or makefile/justfile with bare ghc
 - [x] Configuration file
     - With TOML or maybe an actual haskell file that gets compiled like xmonad / suckless style
+- [ ] Alternate imput links

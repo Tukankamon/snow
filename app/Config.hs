@@ -142,13 +142,13 @@ parseArgs generator = do
   args <- getArgs
   -- #TODO parse architecture and branch, and make it case insensitive
   return $ case args of
-    [] -> generator $ fillData defaultArch Default defaultBranch
-    ["rust"] -> generator $ fillData defaultArch Rust defaultBranch
-    ["haskell"] -> generator $ fillData defaultArch Haskell defaultBranch
-    ["c"] -> generator $ fillData defaultArch C defaultBranch
+    [] -> fillData defaultArch Default defaultBranch
+    ["rust"] -> fillData defaultArch Rust defaultBranch
+    ["haskell"] -> fillData defaultArch Haskell defaultBranch
+    ["c"] -> fillData defaultArch C defaultBranch
     [x] -> "Unrecognized language: " ++ x
     _ -> "Too many arguments"
     where
-    fillData :: Arch -> Language -> Nixpkgs -> Data
+    fillData :: Arch -> Language -> Nixpkgs -> String
     fillData architecture language br =
-      Data { arch = architecture, lang = language, branch = br }
+      generator $ Data { arch = architecture, lang = language, branch = br }
