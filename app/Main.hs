@@ -1,62 +1,85 @@
 module Main (main) where
 import Config
-import Utils
 
-generateList :: [String] -> String
-generateList [] = "[];"
-generateList list = "[\n" ++ catListLn list tab ++ "\n];"
+catListLn :: Int -> [String] -> String
+catListLn indentLevel list =
+  case (filter (`notElem` ["","\n"," "]) list, indentLevel) of
+    ([], _) -> ""
+    ([x], indentLevel) -> prefix ++ x
+    ((x:xs), indentLevel) -> prefix ++ x ++ "\n" ++ catListLn indentLevel xs
+  where prefix = nTabs indentLevel
 
-generateInline :: [String] -> String
-generateInline [] = "''\n" ++ tab ++ "'';"
-generateInline list = "''\n" ++ catListLn list tab ++ "\n'';"
+catDot :: [String] -> String
+catDot [] = ""
+catDot [x] = x
+catDot (x:xs) = x ++ "." ++ catDot xs
+
+nTabs :: Int -> String
+nTabs n = concat (replicate n tab)
+
+generateList :: Int -> [String] -> String
+generateList _ [] = "[];"
+generateList indentLevel list =
+  "[\n" ++ catListLn (indentLevel+1) list ++ "\n" ++ nTabs indentLevel ++ "];"
+
+generateInline :: Int -> [String] -> String
+generateInline indentLevel list =
+  "''\n" ++ catListLn (indentLevel+1) list ++ nTabs indentLevel ++ "'';"
 
 -- No ";" since some sets (e.g the one that wraps the whole file) dont have it
 -- Add it explicitly if needed after each call
-generateSet :: [String] -> String
-generateSet [] = "{}"
-generateSet list = "{\n" ++ catListLn list tab ++ "\n}"
+generateSet :: Int -> [String] -> String
+generateSet _ [] = "{}"
+generateSet indentLevel list =
+  "{\n" ++ catListLn (indentLevel+1) list ++ "\n" ++ nTabs (indentLevel-1) ++ "}"
 
-generateHook :: [String] -> String
-generateHook cmd = "shellHook = " ++ generateInline cmd
+generateHook :: Int -> [String] -> String
+generateHook indentLevel cmd = "shellHook = " ++ generateInline indentLevel cmd
 
-generateShell :: Data -> String
-generateShell dat = catDot ["devShells", archToString (arch dat), "default"]
+generateShell :: Int -> Data -> String
+generateShell indentLevel dat = catDot ["devShells", archToString (arch dat), "default"]
   ++ " = pkgs.mkShell "
-  ++ generateSet [
-    "packages = with pkgs; " ++ generateList (packages config),
-    generateHook (hook config),
-    catListLn (map (++ ";") (other config)) ""
+  ++ generateSet (indentLevel+1) [
+    "packages = with pkgs; " ++ generateList (indentLevel+2) (packages config),
+    generateHook (indentLevel+2) (hook config),
+    catListLn (indentLevel+2) (map (++ ";") (other config))
   ] ++ ";"
   where config = fillConfig dat
 
-generateBuilder :: Data -> String
-generateBuilder dat = case builder $ fillConfig dat of
+generateBuilder :: Int -> Data -> String
+generateBuilder indentLevel dat = case builder $ fillConfig dat of
   Nothing -> ""
   Just buildr ->
     catDot ["packages", archToString (arch dat), "default"]
-    ++ prefix buildr ++ " = " ++ generateSet [
+    ++ prefix buildr ++ " = " ++ generateSet indentLevel [
       "name = \"" ++ name buildr ++ "\";",
       "src = " ++ src buildr ++ ";",
-      "buildInputs = " ++ generateList (map (++ ";") (buildInputs buildr)),
-      "nativeBuildInputs = " ++ generateList (map (++ ";") (nativeBuildInputs buildr)),
-      "buildPhase = " ++ generateInline (buildPhase buildr),
-      "installPhase = " ++ generateInline (installPhase buildr),
-      catListLn (extra buildr) ""
+      "buildInputs = " ++ generateList nextLvl (map (++ ";") (buildInputs buildr)),
+      "nativeBuildInputs = " ++ generateList nextLvl (map (++ ";") (nativeBuildInputs buildr)),
+      "buildPhase = " ++ generateInline nextLvl (buildPhase buildr),
+      "installPhase = " ++ generateInline nextLvl (installPhase buildr),
+      catListLn nextLvl (extra buildr)
     ] ++ ";"
+  where nextLvl = indentLevel+1
 
-generateLetIn :: Data -> String
-generateLetIn dat =
-  "let\n" ++ catListLn (definitions (fillConfig dat)) tab
-  ++ "\nin\n" ++ generateSet [generateShell dat, generateBuilder dat] ++ ";"
+generateLetIn :: Int -> Data -> String
+generateLetIn indentLevel dat =
+  nTabs indentLevel ++ "let\n" ++ catListLn nextLvl (definitions (fillConfig dat))
+  ++ "\n" ++ nTabs indentLevel ++ "in "
+  ++ generateSet nextLvl [
+    generateShell (nextLvl+1) dat,
+    generateBuilder (nextLvl+1) dat
+  ] ++ ";"
+  where nextLvl = indentLevel+1
 
-generateOutputs :: Data -> String
-generateOutputs dat = "outputs = \n"
-  ++ catListLn ["{self, nixpkgs }:", generateLetIn dat ] tab
+generateOutputs :: Int -> Data -> String
+generateOutputs indentLevel dat = "outputs = {self, nixpkgs }:\n"
+  ++ generateLetIn indentLevel dat
 
 generateFlake :: Data -> String
-generateFlake dat = generateSet [
+generateFlake dat = generateSet 0 [
   "inputs.nixpkgs.url = \"nixpkgs/" ++ branchToString (branch dat) ++ "\";",
-  generateOutputs dat ]
+  generateOutputs 1 dat ]
 
 main :: IO ()
 main = parseArgs generateFlake >>= putStrLn

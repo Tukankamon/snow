@@ -2,7 +2,7 @@ FLAGS ?=
 QUIET ?=
 LANG ?=
 
-snow: app/Main.hs app/Config.hs app/Utils.hs
+snow: app/Main.hs app/Config.hs
 	$(QUIET)mkdir -p build
 	$(QUIET)ghc --make app/Main.hs -iapp -outputdir build -o build/snow $(FLAGS)
 

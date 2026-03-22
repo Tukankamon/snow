@@ -1,11 +1,11 @@
 module Config where
-import Utils
 import System.Environment (getArgs)
 
 -- Separator for indentations, could be changed to something like spaces
 -- It is not perfect so it will probably need alejandra or any other formatter anyway
 tab :: String
-tab = "\t"
+tab = "  "
+--tab = "\t"
 
 -- Default architecture to be used throughout the flake
 defaultArch :: Arch
@@ -108,7 +108,7 @@ fillConfig dat = case lang dat of
   Default -> Config {
     definitions = [pkgs],
     builder = defaultBuilder,
-    packages = [""],
+    packages = [],
     hook = ["fish"],
     other = [] }
   Rust -> Config {
@@ -132,7 +132,7 @@ fillConfig dat = case lang dat of
     hook = [],
     other = [] }
   where
-    pkgs = catDot ["pkgs = nixpkgs.legacyPackages", archToString (arch dat)] ++ ";"
+    pkgs = "pkgs = nixpkgs.legacyPackages" ++ archToString (arch dat) ++ ";"
     hpkgs = "hpkgs = pkgs.haskellPackages;"
 
 -- Actual argument parsing, add your own custom arguments as neeed
