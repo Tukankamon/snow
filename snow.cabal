@@ -19,7 +19,7 @@ common warnings
 executable snow
     import:           warnings
     main-is:          Main.hs
-    -- other-modules:
+    other-modules: Config, Utils
     -- other-extensions:
     build-depends:    base ^>=4.20.2.0
     hs-source-dirs:   app
