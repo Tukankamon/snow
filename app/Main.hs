@@ -77,9 +77,7 @@ generateOutputs indentLevel dat = "outputs = {self, nixpkgs }:\n"
   ++ generateLetIn indentLevel dat
 
 generateFlake :: Data -> String
-generateFlake dat = generateSet 0 [
-  "inputs.nixpkgs.url = \"nixpkgs/" ++ branchToString (branch dat) ++ "\";",
-  generateOutputs 1 dat ]
+generateFlake dat = generateSet 0 $ (input. fillConfig) dat ++ [generateOutputs 1 dat]
 
 main :: IO ()
 main = parseArgs generateFlake >>= putStrLn

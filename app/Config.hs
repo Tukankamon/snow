@@ -55,14 +55,16 @@ data Builder = Builder {
 
 {-
 Derived from Data and is the List of:
+  input: the links in the flake inputs
   definitions: things like pkgs = nixpkgs.legacyPackages.system
   builder: builder to use based on the language
   packages: packages that will be in the nix shell after running nix develop
   hook: Commands to be run immediately after entering the shell
-  other:: Literally anything else inside the shell (mind that ";" is added automatically so no need for you to add it
+  other: Literally anything else inside the shell (mind that ";" is added automatically so no need for you to add it
     (see how rust is implemented in fillConfig for an example)
 -}
 data Config  = Config {
+  input :: [String],
   definitions :: [String],
   builder :: Maybe Builder,
   packages :: [String],
@@ -113,12 +115,14 @@ archToString architechture = case architechture of
 fillConfig :: Data -> Config
 fillConfig dat = case lang dat of
   Default -> Config {
+    input = defaultInput,
     definitions = [pkgs],
     builder = defaultBuilder,
     packages = [],
     hook = ["fish"],
     other = [] }
   Rust -> Config {
+    input = defaultInput ++ ["under construction"],
     definitions = [pkgs],
     builder = cargoBuilder,
     packages = ["cargo", "rustc", "rustfmt"],
@@ -127,18 +131,21 @@ fillConfig dat = case lang dat of
     -- https://www.youtube.com/watch?v=Ss1IXtYnpsg&t=187s
     other = ["env.RUST_SRC_PATH = \"${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}\""]}
   Haskell -> Config {
+    input = defaultInput,
     definitions = [pkgs, hpkgs],
     builder = defaultBuilder,
     packages = ["ghc", "cabal-install"],
     hook = [],
     other = [] }
   C -> Config {
+    input = defaultInput,
     definitions = [pkgs],
     builder = defaultBuilder,
     packages = ["make", "cmake", "gcc", "gdb"],
     hook = [],
     other = [] }
   Python -> Config {
+    input = defaultInput,
     definitions = [pkgs],
     builder = defaultBuilder,
     -- Python packages are different on nix, check https://www.youtube.com/watch?v=6fftiTJ2vuQ to learn how to install them
@@ -146,6 +153,7 @@ fillConfig dat = case lang dat of
     hook = [],
     other = [] }
   where
+    defaultInput = ["inputs.nixpkgs.url = \"nixpkgs/" ++ branchToString (branch dat) ++ "\""]
     pkgs = "pkgs = nixpkgs.legacyPackages" ++ archToString (arch dat) ++ ";"
     hpkgs = "hpkgs = pkgs.haskellPackages;"
 
