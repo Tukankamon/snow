@@ -1,5 +1,6 @@
 module Config where
 import System.Environment (getArgs)
+import Data.Char
 
 -- Separator for indentations, could be changed to something like spaces
 -- It is not perfect so it will probably need alejandra or any other formatter anyway
@@ -55,7 +56,7 @@ data Builder = Builder {
 
 {-
 Derived from Data and is the List of:
-  input: the links in the flake inputs
+  input: the links in the flake inputs as a list without ';'. The "inputs" keyword is added automatically
   definitions: things like pkgs = nixpkgs.legacyPackages.system
   builder: builder to use based on the language
   packages: packages that will be in the nix shell after running nix develop
@@ -153,7 +154,8 @@ fillConfig dat = case lang dat of
     hook = [],
     other = [] }
   where
-    defaultInput = ["inputs.nixpkgs.url = \"nixpkgs/" ++ branchToString (branch dat) ++ "\""]
+    version = branchToString $ branch dat
+    defaultInput = ["nixpkgs.url = \"nixpkgs/" ++ version ++ "\""]
     pkgs = "pkgs = nixpkgs.legacyPackages" ++ archToString (arch dat) ++ ";"
     hpkgs = "hpkgs = pkgs.haskellPackages;"
 
@@ -162,8 +164,7 @@ fillConfig dat = case lang dat of
 parseArgs :: (Data -> String) -> IO String
 parseArgs generator = do
   args <- getArgs
-  -- #TODO parse architecture and branch, and make it case insensitive
-  return $ case args of
+  return $ case map (map toLower) args of
     [] -> fillData defaultArch Default defaultBranch
     ["show"] ->
       "Available languages:\n" ++ unlines (map show [minBound..maxBound :: Language])

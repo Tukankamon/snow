@@ -76,8 +76,16 @@ generateOutputs :: Int -> Data -> String
 generateOutputs indentLevel dat = "outputs = {self, nixpkgs }:\n"
   ++ generateLetIn indentLevel dat
 
+generateInputs :: Int -> Data -> String
+generateInputs indentLevel dat = case ins of
+  [x] -> "inputs." ++ x
+  _ -> "inputs = " ++ generateSet nextLvl ins ++ ";"
+  where
+    nextLvl = indentLevel + 1
+    ins = map (++ ";") $ (input. fillConfig) dat
+
 generateFlake :: Data -> String
-generateFlake dat = generateSet 0 $ (input. fillConfig) dat ++ [generateOutputs 1 dat]
+generateFlake dat = generateSet 0 $ [generateInputs 1 dat, generateOutputs 1 dat]
 
 main :: IO ()
 main = parseArgs generateFlake >>= putStrLn
