@@ -42,7 +42,7 @@ generateShell indentLevel dat = catDot ["devShells", archToString (arch dat), "d
   ++ generateSet (indentLevel+1) [
     "packages = with pkgs; " ++ generateList (indentLevel+2) (packages config),
     generateHook (indentLevel+2) (hook config),
-    catListLn (indentLevel+2) (map (++ ";") (other config))
+    catListLn 0 (map (++ ";") (other config))
   ] ++ ";"
   where config = fillConfig dat
 
@@ -58,7 +58,7 @@ generateBuilder indentLevel dat = case builder $ fillConfig dat of
       "nativeBuildInputs = " ++ generateList nextLvl (map (++ ";") (nativeBuildInputs buildr)),
       "buildPhase = " ++ generateInline nextLvl (buildPhase buildr),
       "installPhase = " ++ generateInline nextLvl (installPhase buildr),
-      catListLn nextLvl (extra buildr)
+      catListLn 0 (extra buildr)
     ] ++ ";"
   where nextLvl = indentLevel+1
 
