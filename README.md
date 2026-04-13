@@ -22,9 +22,11 @@ These are to fill out common dependencies like cargo and rustc for Rust and buil
 Setting the LANGUAGE field empty will default to a generic flake
 
 # Configuration
-Configuration is done following the suckless style of recompiling your changes directly into your program but instead of writing actual patches, the configuration file is literaly a file that will get swapped out for the default [Config.hs](app/Config.hs). Most configuration use cases should be configurable in [Config.hs](app/Config.hs) but of course as with any libre program you are free to change it as you wish. Because of this, snow doesn't need any external dependencies at build time other than ghc
+Configuration is done following the suckless style of recompiling your changes directly into your program but instead of writing actual patches, the configuration file is literaly a file that will get swapped out for the default [Config.hs](app/Config.hs)
+Configuring it in haskell results in a very configurable and extensible program as you can write any arbitrary amount of custom haskell logic.
 
-Configuring it in haskell results in a very configurable and extensible program as you can write any arbitrary amount of custom haskell logic but you can of course go the suckless way of patching it rather than editing the source code directly
+Most configuration use cases should be configurable in [Config.hs](app/Config.hs) but of course as with any libre program you are free to change any other part of the code as you wish. Snow doesn't need any external dependencies at build time other than ghc and the base haskell library
+
 
 # Installation
 ## Flake
@@ -58,7 +60,7 @@ environment.systemPackages = [
         owner = "Tukankamon";
         repo = "snow";
         rev = "c77a6d0418"; # Change this for the commit hash you want
-        sha256 = pkgs.lib.fakeHash; # This will fail on build and thell you the correct hash
+        sha256 = pkgs.lib.fakeHash; # This will fail on build and tell you the correct hash
       };
       buildInputs = [ (pkgs.haskellPackages.ghcWithPackages (ps: [])) ];
       buildPhase = ''
