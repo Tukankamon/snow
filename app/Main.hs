@@ -24,14 +24,14 @@ generateList indentLevel list =
 
 generateInline :: Int -> [String] -> String
 generateInline indentLevel list =
-  "''\n" ++ catListLn (indentLevel+1) list ++ nTabs indentLevel ++ "'';"
+  "''\n" ++ catListLn (indentLevel+1) list ++ "\n" ++ nTabs indentLevel ++ "'';"
 
 -- No ";" since some sets (e.g the one that wraps the whole file) dont have it
 -- Add it explicitly if needed after each call
 generateSet :: Int -> [String] -> String
 generateSet _ [] = "{}"
 generateSet indentLevel list =
-  "{\n" ++ catListLn (indentLevel+1) list ++ "\n" ++ nTabs (indentLevel-1) ++ "}"
+  "{\n" ++ catListLn (indentLevel+1) list ++ "\n" ++ nTabs indentLevel ++ "}"
 
 generateHook :: Int -> [String] -> String
 generateHook indentLevel cmd = "shellHook = " ++ generateInline indentLevel cmd
@@ -39,8 +39,8 @@ generateHook indentLevel cmd = "shellHook = " ++ generateInline indentLevel cmd
 generateShell :: Int -> Data -> String
 generateShell indentLevel dat = catDot ["devShells", archToString (arch dat), "default"]
   ++ " = pkgs.mkShell "
-  ++ generateSet (indentLevel+1) [
-    "packages = with pkgs; " ++ generateList (indentLevel+2) (packages config),
+  ++ generateSet indentLevel [
+    "packages = " ++ (with config) ++ " " ++ generateList (indentLevel+2) (packages config),
     generateHook (indentLevel+2) (hook config),
     catListLn 0 (map (++ ";") (other config))
   ] ++ ";"
@@ -66,9 +66,9 @@ generateLetIn :: Int -> Data -> String
 generateLetIn indentLevel dat =
   nTabs indentLevel ++ "let\n" ++ catListLn nextLvl (definitions (fillConfig dat))
   ++ "\n" ++ nTabs indentLevel ++ "in "
-  ++ generateSet nextLvl [
-    generateShell (nextLvl+1) dat,
-    generateBuilder (nextLvl+1) dat
+  ++ generateSet indentLevel [
+    generateShell nextLvl dat,
+    generateBuilder nextLvl dat
   ] ++ ";"
   where nextLvl = indentLevel+1
 

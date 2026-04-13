@@ -22,7 +22,7 @@ Note that they dont have to be actual languages, for example Default is
 a "language" target that creates a general flake, you can do the same for any
 wierd use case for flakes you might have
 -}
-data Language = Default | Rust | Haskell | C | Python
+data Language = Default | Rust | Haskell | C | Python | Elm
   deriving (Show, Bounded, Enum)
 
 -- The branch to be used in the nixpkgs inputs
@@ -59,6 +59,7 @@ Derived from Data and is the List of:
   input: the links in the flake inputs as a list without ';'. The "inputs" keyword is added automatically
   definitions: things like pkgs = nixpkgs.legacyPackages.system
   builder: builder to use based on the language
+	with: what to put in the place where "with pkgs;" goes (; included)
   packages: packages that will be in the nix shell after running nix develop
   hook: Commands to be run immediately after entering the shell
   other: Literally anything else inside the shell (mind that ";" is added automatically so no need for you to add it
@@ -68,6 +69,7 @@ data Config  = Config {
   input :: [String],
   definitions :: [String],
   builder :: Maybe Builder,
+  with :: String,
   packages :: [String],
   hook :: [String],
   other :: [String]
@@ -118,6 +120,7 @@ fillConfig dat = case lang dat of
   Default -> Config {
     input = defaultInput,
     definitions = [pkgs],
+    with = "with pkgs;",
     builder = defaultBuilder,
     packages = [],
     hook = ["fish"],
@@ -125,6 +128,7 @@ fillConfig dat = case lang dat of
   Rust -> Config {
     input = defaultInput ++ ["under construction"],
     definitions = [pkgs],
+    with = "with pkgs;",
     builder = cargoBuilder,
     packages = ["cargo", "rustc", "rustfmt"],
     hook = [],
@@ -134,6 +138,7 @@ fillConfig dat = case lang dat of
   Haskell -> Config {
     input = defaultInput,
     definitions = [pkgs, hpkgs],
+    with = "with pkgs;",
     builder = defaultBuilder,
     packages = ["ghc", "cabal-install"],
     hook = [],
@@ -141,6 +146,7 @@ fillConfig dat = case lang dat of
   C -> Config {
     input = defaultInput,
     definitions = [pkgs],
+    with = "with pkgs;",
     builder = defaultBuilder,
     packages = ["make", "cmake", "gcc", "gdb"],
     hook = [],
@@ -148,15 +154,24 @@ fillConfig dat = case lang dat of
   Python -> Config {
     input = defaultInput,
     definitions = [pkgs],
+    with = "with pkgs;",
     builder = defaultBuilder,
     -- Python packages are different on nix, check https://www.youtube.com/watch?v=6fftiTJ2vuQ to learn how to install them
     packages = ["python"],
     hook = [],
     other = [] }
+  Elm -> Config {
+    input = defaultInput,
+    definitions = [pkgs],
+    with = "with pkgs.elmPackages;",
+    builder = defaultBuilder,
+    packages = ["elm", "elm-format", "elm-language-server", "elm-review"],
+    hook = [],
+    other = [] }
   where
     version = branchToString $ branch dat
     defaultInput = ["nixpkgs.url = \"nixpkgs/" ++ version ++ "\""]
-    pkgs = "pkgs = nixpkgs.legacyPackages" ++ archToString (arch dat) ++ ";"
+    pkgs = "pkgs = nixpkgs.legacyPackages." ++ archToString (arch dat) ++ ";"
     hpkgs = "hpkgs = pkgs.haskellPackages;"
 
 -- Actual argument parsing, add your own custom arguments as neeed
@@ -172,6 +187,7 @@ parseArgs generator = do
     ["haskell"] -> fillData defaultArch Haskell defaultBranch
     ["c"] -> fillData defaultArch C defaultBranch
     ["python"] -> fillData defaultArch Python defaultBranch
+    ["elm"] -> fillData defaultArch Elm defaultBranch
     [x] -> "Unrecognized language: " ++ x ++ "\n Run 'snow show' to list all of the available languages"
     _ -> "Too many arguments"
     where
