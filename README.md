@@ -14,6 +14,8 @@ Currently available languages are:
     - Rust
     - Haskell
     - C / Cpp
+    - Python
+    - Elm
 Run ```snow show``` to list all the available languages
 
 These are to fill out common dependencies like cargo and rustc for Rust and builder functions as specified in [Config.hs](app/Config.hs)
@@ -79,7 +81,6 @@ Follow these steps to add a custom language (or just a general template) to Conf
 
 - Add it to the Language type definition
 - Implement fillConfig, this just sets what the different parameters in the flake should be
-- Implement parseArgs for it (follow the example of the other languages)
 
 # TODO
 - [x] Specific language builder support (cargo, cabal etc)
