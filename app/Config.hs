@@ -1,6 +1,7 @@
 module Config where
 
 import Data.Char
+import Data.List (intercalate)
 import System.Environment (getArgs)
 
 -- Separator for indentations, could be changed to something like spaces
@@ -209,12 +210,12 @@ parseArgs generator = do
  return $ case map (map toLower) args of
   [] -> fillData defaultArch Default defaultBranch
   ["show"] ->
-   "Available languages:\n" ++ unlines (map show [minBound .. maxBound :: Language])
+   "Available languages:\n" ++ intercalate "\n" (map show [minBound .. maxBound :: Language])
   [x] -> case parseLang x of
    Right lang -> fillData defaultArch lang defaultBranch
-   Left _ -> "Unrecognized language: " ++ x ++ "\n Run 'snow show' to list all of the available languages"
+   Left _ -> "Unrecognized language or option: " ++ x ++ "\n Run 'snow show' to list all of the available languages"
   _ -> "Too many arguments"
  where
- fillData :: Arch -> Language -> Nixpkgs -> String
- fillData architecture language br =
-  generator $ Data{arch = architecture, lang = language, branch = br}
+   fillData :: Arch -> Language -> Nixpkgs -> String
+   fillData architecture language br =
+    generator $ Data{arch = architecture, lang = language, branch = br}

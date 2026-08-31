@@ -68,7 +68,7 @@ environment.systemPackages = [
         #cp ${./Config.hs} app/Config.hs
 
         # Add whatever compiler flags you want here with 'make FLAGS="-02 -Wall"' (for example)
-        make
+        make snow
       '';
       installPhase = ''
         mkdir -p $out/bin
